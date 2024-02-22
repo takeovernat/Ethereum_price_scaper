@@ -3,29 +3,11 @@ import requests
 import csv
 import sys
 
-def oneMinPriceRequest() -> object:
-    URL = "https://production.api.coindesk.com/v2/tb/price/values/ETH?start_date=2024-02-21T15:40&end_date=2024-02-22T04:41&interval=1m&ohlc=true"
-    res = requests.get(URL)
-    d = res.json()
-    data = (d['data'])
-    return data['entries']
 
-def fifteenMinPriceRequest() -> object:
-    URL = "https://production.api.coindesk.com/v2/tb/price/values/ETH?start_date=2024-02-15T15:00&end_date=2024-02-22T04:41&interval=15m&ohlc=true"
-    res = requests.get(URL)
-    d = res.json()
-    data = (d['data'])
-    return data['entries']
-
-def oneHourPriceRequest() -> object:
-    URL = "https://production.api.coindesk.com/v2/tb/price/values/ETH?start_date=2021-01-01T02:41&end_date=2024-02-22T04:41&interval=1h&ohlc=true"
-    res = requests.get(URL)
-    d = res.json()
-    data = (d['data'])
-    return data['entries']
-
-def oneDayPriceRequest() -> object:
-    URL = "https://production.api.coindesk.com/v2/tb/price/values/ETH?start_date=2016-12-26T02:41&end_date=2024-02-22T04:41&interval=1d&ohlc=true"
+def ethPriceRequest(startDate : str, interval : str) -> object:
+    now = datetime.datetime.now()
+    now_string = now.strftime("%Y-%m-%dT%H:%M")
+    URL = "https://production.api.coindesk.com/v2/tb/price/values/ETH?start_date={}&end_date={}&interval={}&ohlc=true".format(startDate, now_string, interval)
     res = requests.get(URL)
     d = res.json()
     data = (d['data'])
@@ -37,7 +19,6 @@ def convertMstoSeconds(epochMs: int) -> int:
 def convertEpochToDateTime(epochMs: int) -> datetime:
     epochS = convertMstoSeconds(epochMs)
     time = datetime.datetime.fromtimestamp(epochS)
-    # date_time = time.strftime("%m/%d/%Y, %H:%M:%S")
     return time
 
 
@@ -66,31 +47,34 @@ def createCSVraw(dict: object, filename: str) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 5:
-        print("\nERROR! this script requires 4 command prompt arguments")
-        print("example usage: python3 index.py filename1, filename2, filename3, filename4, True or False as a last argument\n") 
+    if len(sys.argv) < 5 or len(sys.argv) > 6:
+        print("\nERROR! this script requires only 4 command prompt arguments and an optional 5th argument")
+        print("example usage: python3 index.py filename1, filename2, filename3, filename4, and True as an optional argument to use epoch dates as a key\n") 
         exit()
 
+    oneMinStartDateStr, fifteenMinStartDateStr, oneHourStartDateStr, oneDayStartDateStr  = "2024-02-21T15:40", "2024-02-15T15:00", "2021-01-01T02:41", "2016-12-26T02:41"
     oneMinFileName, fifteenMinFileName, oneHourFileName, oneDayFileName = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-    epoch = True if sys.argv[5] == "True" else False
+    epoch = False
+    if len(sys.argv) == 6 and sys.argv[5] == "True" or sys.argv[5] == "true":
+        epoch = True
 
     #one min chart
-    oneMinData = oneMinPriceRequest()
+    oneMinData = ethPriceRequest(oneMinStartDateStr, "1m")
     oneMinDict = createDict(oneMinData, epoch)
     createCSVraw(oneMinDict, oneMinFileName)    
 
     #15 min chart
-    fifteenMinData = fifteenMinPriceRequest()
+    fifteenMinData = ethPriceRequest(fifteenMinStartDateStr, "15m")
     fifteenMinDict = createDict(fifteenMinData, epoch)
     createCSVraw(fifteenMinDict, fifteenMinFileName)
 
     #1 hour chart
-    oneHourData = oneHourPriceRequest()
+    oneHourData = ethPriceRequest(oneDayStartDateStr, "1h")
     oneHourDict = createDict(oneHourData, epoch)
     createCSVraw(oneHourDict, oneHourFileName)
 
     #1 day chart
-    oneDayData = oneDayPriceRequest()
+    oneDayData = ethPriceRequest(oneDayStartDateStr, "1d")
     oneDayDict = createDict(oneDayData, epoch)
     createCSVraw(oneDayDict, oneDayFileName)
 
